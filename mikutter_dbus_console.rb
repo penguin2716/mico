@@ -55,15 +55,28 @@ EOF
   def mikutter_eval(ruby_code)
     result = @player.ruby([["code", ruby_code], ["file", ""]])
     if result.first =~ /^#<(Deferred|Delayer):([0-9xa-f]+)/
-      puts "#<#{$1}:#{$2}...>"
+      puts colorize("#<#{$1}:#{$2}...>")
       #mikutter_deferred_inspect ((eval $1) >> 1)
     else
-      puts result.first
+      puts colorize(result.first)
+    end
+  end
+
+  def colorize(str)
+    str.chomp!
+    if str =~ /^[A-Z][a-z]+$/
+      "\e[34;1;4m" + str + "\e[0m"
+    elsif str =~ /^"[\s\S]+"$/
+      "\e[32m" + str + "\e[0m"
+    elsif str =~ /^#<[\s\S]+>$/
+      "\e[32m" + str + "\e[0m"
+    else
+      str
     end
   end
 
   puts <<EOF
-** Welcome to mikutter dbus shell **
+** Welcome to mikutter dbus console **
 Ctrl+C to exit.
 
 EOF
@@ -90,7 +103,10 @@ EOF
         @locks.push :lock
       else
 
-        if ruby_code =~ /^\$\(\(([\s\S]+)\)\)([\s\S]+)?/
+        if ruby_code =~ /^\./
+          puts `#{ruby_code[1..-1]}`
+          @locks.push :lock
+        elsif ruby_code =~ /^\$\(\(([\s\S]+)\)\)([\s\S]+)?/
           code = $1
           method = $2
           mikutter_deferred_callback code, method
