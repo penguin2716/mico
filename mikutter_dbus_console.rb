@@ -73,6 +73,8 @@ EOF
       "\e[32m" + str + "\e[0m"
     elsif str =~ /^#<[\s\S]+>$/
       "\e[32m" + str + "\e[0m"
+    elsif str =~ /^nil$/
+      "\e[36;1m" + str + "\e[0m"
     else
       str
     end
