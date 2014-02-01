@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
- 
+
 =begin
 mikutter dbus console
  
@@ -9,14 +9,14 @@ Copyright (c) 2014 Takuma Nakajima
 This software is released under the MIT License.
 http://opensource.org/licenses/mit-license.php
 =end
- 
+
 require 'dbus'
 require 'readline'
 require 'socket'
 require 'pry'
- 
+
 @locks = Queue.new
- 
+
 Thread.new do
   session_bus = DBus::SessionBus.instance
   mikutter_srv = session_bus.service("org.mikutter.dynamic")
@@ -28,7 +28,7 @@ Thread.new do
     exit 1
   end
   @player.default_iface = "org.mikutter.eval"
- 
+
   def mikutter_deferred_callback(code, method)
     ruby_code =<<EOF
 ret = ( #{code} )
@@ -37,33 +37,37 @@ ret.next{ |result|
   sock = TCPSocket.open('localhost', 23456)
   sock.p result #{method}
   sock.close
+}.trap{
+  sock = TCPSocket.open('localhost', 23456)
+  sock.puts "むりでしたヽ('ω')ﾉ三ヽ('ω')ﾉ"
+  sock.close
 }
 end
 EOF
     @player.ruby([["code", ruby_code], ["file", ""]])
   end
- 
+
   def mikutter_deferred_inspect(object_id)
     ruby_code = "ObjectSpace.each_object(Deferred).to_a.select{|d| d.object_id == #{object_id}}.first.next{|result| Plugin.call(:update, nil, [Message.new(message: result.inspect, system: true)])}"
     @player.ruby([["code", ruby_code], ["file", ""]])
   end
- 
+
   def mikutter_eval(ruby_code)
     result = @player.ruby([["code", ruby_code], ["file", ""]])
-    if result.first =~ /^#<Deferred:([0-9xa-f]+)/
-      puts "#<Deferred:#{$1}...>"
+    if result.first =~ /^#<(Deferred|Delayer):([0-9xa-f]+)/
+      puts "#<#{$1}:#{$2}...>"
       #mikutter_deferred_inspect ((eval $1) >> 1)
     else
       puts result.first
     end
   end
- 
+
   puts <<EOF
 ** Welcome to mikutter dbus shell **
 Ctrl+C to exit.
- 
+
 EOF
- 
+
   while ruby_code = Readline.readline("mikutter> ", true)
     Readline::HISTORY.pop if /^\s*$/ =~ ruby_code
     begin
@@ -72,12 +76,12 @@ EOF
       end
     rescue
     end
- 
+
     unless ruby_code.empty?
       ruby_code =~ /^(:[a-z]+)\s*/
       first_block = $1
       args_block = ruby_code.gsub(/^(:[a-z]+)\s*/, "")
- 
+
       case first_block
       when ':quit'
         break
@@ -85,7 +89,7 @@ EOF
         mikutter_eval "Service.primary.post :message => \"#{args_block}\""
         @locks.push :lock
       else
- 
+
         if ruby_code =~ /^\$\(\(([\s\S]+)\)\)([\s\S]+)?/
           code = $1
           method = $2
@@ -96,25 +100,25 @@ EOF
           mikutter_eval ruby_code
           @locks.push :lock
         end
- 
+
       end
- 
+
     else
       @locks.push :lock
     end
- 
+
     @locks.pop
   end
- 
+
 end
- 
+
 Signal.trap(:INT){
   puts "exit"
   s = TCPSocket.open('localhost', 23456)
   s.puts ":exit"
   s.close
 }
- 
+
 TCPServer.open('localhost', 23456) do |serv|
   loop do
     client = nil
