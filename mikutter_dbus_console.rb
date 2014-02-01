@@ -15,6 +15,8 @@ require 'readline'
 require 'socket'
 require 'pry'
 
+PORT = 12345
+
 @locks = Queue.new
 
 Thread.new do
@@ -33,15 +35,16 @@ Thread.new do
     ruby_code =<<EOF
 ret = ( #{code} )
 if ret.instance_of? Deferred
-ret.next{ |result|
-  sock = TCPSocket.open('localhost', 23456)
-  sock.p result #{method}
-  sock.close
-}.trap{
-  sock = TCPSocket.open('localhost', 23456)
-  sock.puts "むりでしたヽ('ω')ﾉ三ヽ('ω')ﾉ"
-  sock.close
-}
+  ret.next{ |result|
+    output = eval ""
+    sock = TCPSocket.open("localhost", #{PORT})
+    sock.puts (result#{method}).inspect
+    sock.close
+  }.trap{
+    sock = TCPSocket.open('localhost', #{PORT})
+    sock.puts "むりでしたヽ('ω')ﾉ三ヽ('ω')ﾉ"
+    sock.close
+  }
 end
 EOF
     @player.ruby([["code", ruby_code], ["file", ""]])
@@ -130,18 +133,18 @@ end
 
 Signal.trap(:INT){
   puts "exit"
-  s = TCPSocket.open('localhost', 23456)
+  s = TCPSocket.open('localhost', PORT)
   s.puts ":exit"
   s.close
 }
 
-TCPServer.open('localhost', 23456) do |serv|
+TCPServer.open('localhost', PORT) do |serv|
   loop do
     client = nil
     client = serv.accept
     buf = client.read
     break if buf.chomp == ':exit'
-    puts buf
+    puts colorize(buf)
     client.close
     @locks.push :lock
   end
