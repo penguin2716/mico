@@ -15,7 +15,7 @@ require 'readline'
 require 'socket'
 require 'pry'
 
-PORT = 12345
+PORT = 23456
 
 @locks = Queue.new
 
@@ -67,14 +67,28 @@ EOF
 
   def colorize(str)
     str.chomp!
-    if str =~ /^[A-Z][a-z]+$/
+    if str =~ /(#<[A-Z][a-zA-Z:0-9]+)/
+      str.gsub(/(#<[A-Z][_a-zA-Z:0-9\. =>\(\)\/\+\-]+)/, "\e[32m\\1\e[0m").
+        gsub(/(>|m)(:[_a-zA-Z0-9!?<=>~]+)/, "\\1\e[32;1m\\2\e[0m").
+        gsub(/(=>$)/, "\e[0m\\1\e[0m").
+        gsub(/(=>[^\e :])/, "\e[0m\\1\e[0m").
+        gsub(/"(((\\")?[^"]?)+)"/, "\e[32m\"\\1\"\e[0m").gsub(/(\\[a-z"])/i, "\e[36;1m\\1\e[0m\e[32m").
+        gsub(/(@[a-zA-Z0-9_]+)/, "\e[34;1m\\1\e[0m")
+    elsif str =~ /^\[[\s\S]+\]$/
+      str.gsub(/([A-Z][a-zA-Z_:]+)\(([^)]+)\)/, "\e[34;1;4m\\1\e[0m(\\2)" ).
+        gsub(/(:[_a-zA-Z0-9!?<=>~]+)/, "\e[32;1m\\1\e[0m")
+    elsif str =~ /^[A-Z][a-z]+$/
       "\e[34;1;4m" + str + "\e[0m"
-    elsif str =~ /^"[\s\S]+"$/
-      "\e[32m" + str + "\e[0m"
+    elsif str =~ /"(((\\")?[^"]?)+)"/
+      str.gsub(/"(((\\")?[^"]?)+)"/, "\e[32m\"\\1\"\e[0m").gsub(/(\\[a-z"])/i, "\e[36;1m\\1\e[0m\e[32m")
     elsif str =~ /^#<[\s\S]+>$/
       "\e[32m" + str + "\e[0m"
-    elsif str =~ /^nil$/
+    elsif str =~ /^nil|true|false$/
       "\e[36;1m" + str + "\e[0m"
+    elsif str =~ /(:[_a-zA-Z0-9!?<=>~]+)/
+      str.gsub(/(:[_a-zA-Z0-9!?<=>~]+)/, "\e[32;1m\\1\e[0m")
+    elsif str =~ /^\d+(\.\d+)?$/
+      "\e[34;1m" + str + "\e[0m"
     else
       str
     end
