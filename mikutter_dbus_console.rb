@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
  
 =begin
-mikutter dbus shell
+mikutter dbus console
  
 Copyright (c) 2014 Takuma Nakajima
  
