@@ -26,7 +26,7 @@ ret = ( #{code} )
 if ret.instance_of? Deferred
 ret.next{ |result|
   sock = TCPSocket.open('localhost', 23456)
-  sock.puts result #{method}
+  sock.p result #{method}
   sock.close
 }
 end
@@ -50,6 +50,7 @@ EOF
   end
 
   while ruby_code = Readline.readline("mikutter> ", true)
+    
     unless ruby_code.empty?
       ruby_code =~ /^(:[a-z]+)\s*/
       first_block = $1
