@@ -52,7 +52,19 @@ EOF
   end
 
   def mikutter_deferred_inspect(object_id)
-    ruby_code = "ObjectSpace.each_object(Deferred).to_a.select{|d| d.object_id == #{object_id}}.first.next{|result| Plugin.call(:update, nil, [Message.new(message: result.inspect, system: true)])}"
+    ruby_code =<<EOF
+ObjectSpace.each_object(Deferred).to_a.select{ |deferred|
+  deferred.object_id == #{object_id}
+}.first.next{ |result|
+  sock = TCPSocket.open('localhost', #{PORT})
+  sock.puts true
+  sock.close
+}.trap{ |e|
+  sock = TCPSocket.open('localhost', #{PORT})
+  sock.puts e.inspect
+  sock.close
+}
+EOF
     @player.ruby([["code", ruby_code], ["file", ""]])
   end
 
@@ -60,7 +72,7 @@ EOF
     result = @player.ruby([["code", ruby_code], ["file", ""]])
     if result.first =~ /^#<(Deferred|Delayer):([0-9xa-f]+)/
       puts "=> " + colorize("#<#{$1}:#{$2}...>")
-      #mikutter_deferred_inspect ((eval $1) >> 1)
+      mikutter_deferred_inspect ((eval $1) >> 1) if result.first =~ /^#<Deferred:([0-9xa-f]+)/
     else
 
       if (result.first.split("\n").size > LESS_LINE_THRESH) or (result.first.size > LESS_LINE_THRESH * 80)
@@ -68,6 +80,7 @@ EOF
       else
         puts "=> #{colorize(result.first)}"
       end
+      @locks.push :lock
 
     end
   end
@@ -126,7 +139,6 @@ EOF
         break
       when ':post'
         mikutter_eval "Service.primary.post :message => \"#{args_block}\""
-        @locks.push :lock
       else
 
         if ruby_code =~ /^\./
@@ -140,7 +152,6 @@ EOF
           @locks.push :lock
         else
           mikutter_eval ruby_code
-          @locks.push :lock
         end
 
       end
@@ -169,11 +180,11 @@ TCPServer.open('localhost', PORT) do |serv|
     client.close
     break if buf.chomp == ':exit'
 
-      if (buf.split("\n").size > LESS_LINE_THRESH) or (buf.size > LESS_LINE_THRESH * 80)
-        system "echo '=> #{colorize(buf)}' | less -R"
-      else
-        puts "=> #{colorize(buf)}"
-      end
+    if (buf.split("\n").size > LESS_LINE_THRESH) or (buf.size > LESS_LINE_THRESH * 80)
+      system "echo '=> #{colorize(buf)}' | less -R"
+    else
+      puts "=> #{colorize(buf)}"
+    end
 
     @locks.push :lock
   end
