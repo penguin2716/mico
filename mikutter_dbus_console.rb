@@ -16,6 +16,7 @@ require 'socket'
 require 'pry'
 
 PORT = 23456
+LESS_LINE_THRESH = 18
 
 @locks = Queue.new
 
@@ -40,9 +41,9 @@ if ret.instance_of? Deferred
     sock = TCPSocket.open("localhost", #{PORT})
     sock.puts (result#{method}).inspect
     sock.close
-  }.trap{
+  }.trap{ |e|
     sock = TCPSocket.open('localhost', #{PORT})
-    sock.puts "むりでしたヽ('ω')ﾉ三ヽ('ω')ﾉ"
+    sock.puts e.inspect
     sock.close
   }
 end
@@ -58,10 +59,16 @@ EOF
   def mikutter_eval(ruby_code)
     result = @player.ruby([["code", ruby_code], ["file", ""]])
     if result.first =~ /^#<(Deferred|Delayer):([0-9xa-f]+)/
-      puts colorize("#<#{$1}:#{$2}...>")
+      puts "=> " + colorize("#<#{$1}:#{$2}...>")
       #mikutter_deferred_inspect ((eval $1) >> 1)
     else
-      puts colorize(result.first)
+
+      if (result.first.split("\n").size > LESS_LINE_THRESH) or (result.first.size > LESS_LINE_THRESH * 80)
+        system "echo '=> #{colorize(result.first)}' | less -R"
+      else
+        puts "=> #{colorize(result.first)}"
+      end
+
     end
   end
 
@@ -159,9 +166,15 @@ TCPServer.open('localhost', PORT) do |serv|
     client = nil
     client = serv.accept
     buf = client.read
-    break if buf.chomp == ':exit'
-    puts colorize(buf)
     client.close
+    break if buf.chomp == ':exit'
+
+      if (buf.split("\n").size > LESS_LINE_THRESH) or (buf.size > LESS_LINE_THRESH * 80)
+        system "echo '=> #{colorize(buf)}' | less -R"
+      else
+        puts "=> #{colorize(buf)}"
+      end
+
     @locks.push :lock
   end
 end
