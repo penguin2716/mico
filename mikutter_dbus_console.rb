@@ -147,7 +147,7 @@ EOF
     unless ruby_code.empty? or ruby_code =~ /^\s*$/ or ruby_code =~ /^#/
       ruby_code =~ /^([a-z]+)\s*/
       first_block = $1
-      args_block = ruby_code.gsub(/^(:[a-z]+)\s*/, "")
+      args_block = ruby_code.gsub(/^([a-z]+)\s*/, "")
 
       case first_block
       when 'exit'
