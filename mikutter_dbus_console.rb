@@ -15,6 +15,12 @@ require 'readline'
 require 'socket'
 require 'pry'
 
+if ARGV.size > 0
+  FILE_INPUT_MODE = true
+else
+  FILE_INPUT_MODE = false
+end
+
 PORT = 23456
 LESS_LINE_THRESH = 18
 
@@ -31,6 +37,22 @@ Thread.new do
     exit 1
   end
   @player.default_iface = "org.mikutter.eval"
+
+  def gets_code
+    if FILE_INPUT_MODE
+      ARGF.gets
+    else
+      ruby_code = Readline.readline("mikutter> ", true)
+      Readline::HISTORY.pop if /^\s*$/ =~ ruby_code
+      begin
+        if Readline::HISTORY[Readline::HISTORY.length-2] == buf
+          Readline::HISTORY.pop
+        end
+      rescue
+      end
+      ruby_code
+    end
+  end
 
   def mikutter_deferred_callback(code, method)
     ruby_code =<<EOF
@@ -88,7 +110,7 @@ EOF
   def colorize(str)
     str.chomp!
     if str =~ /(#<[A-Z][a-zA-Z:0-9]+)/
-      str.gsub(/(#<[A-Z][_a-zA-Z:0-9\. =>\(\)\/\+\-]+)/, "\e[32m\\1\e[0m").
+      str.gsub(/(#<[A-Z][_a-zA-Z:0-9\. '`=>\(\)\/\+\-]+)/, "\e[32m\\1\e[0m").
         gsub(/(>|m)(:[_a-zA-Z0-9!?<=>~]+)/, "\\1\e[32;1m\\2\e[0m").
         gsub(/(=>$)/, "\e[0m\\1\e[0m").
         gsub(/(=>[^\e :])/, "\e[0m\\1\e[0m").
@@ -120,24 +142,17 @@ Ctrl+C to exit.
 
 EOF
 
-  while ruby_code = Readline.readline("mikutter> ", true)
-    Readline::HISTORY.pop if /^\s*$/ =~ ruby_code
-    begin
-      if Readline::HISTORY[Readline::HISTORY.length-2] == buf
-        Readline::HISTORY.pop
-      end
-    rescue
-    end
+  while ruby_code = gets_code
 
-    unless ruby_code.empty?
-      ruby_code =~ /^(:[a-z]+)\s*/
+    unless ruby_code.empty? or ruby_code =~ /^\s*$/ or ruby_code =~ /^#/
+      ruby_code =~ /^([a-z]+)\s*/
       first_block = $1
       args_block = ruby_code.gsub(/^(:[a-z]+)\s*/, "")
 
       case first_block
-      when ':quit'
-        break
-      when ':post'
+      when 'exit'
+        exit
+      when 'post'
         mikutter_eval "Service.primary.post :message => \"#{args_block}\""
       else
 
@@ -162,13 +177,14 @@ EOF
 
     @locks.pop
   end
-
+  puts 'exit'
+  exit
 end
 
 Signal.trap(:INT){
   puts "exit"
   s = TCPSocket.open('localhost', PORT)
-  s.puts ":exit"
+  s.puts "exit"
   s.close
 }
 
@@ -178,7 +194,7 @@ TCPServer.open('localhost', PORT) do |serv|
     client = serv.accept
     buf = client.read
     client.close
-    break if buf.chomp == ':exit'
+    break if buf.chomp == 'exit'
 
     if (buf.split("\n").size > LESS_LINE_THRESH) or (buf.size > LESS_LINE_THRESH * 80)
       system "echo '=> #{colorize(buf)}' | less -R"
