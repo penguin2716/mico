@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 =begin
-mikutter dbus console
+mikutter console
  
 Copyright (c) 2014 Takuma Nakajima
  
@@ -138,7 +138,7 @@ EOF
   end
 
   puts <<EOF
-** Welcome to mikutter dbus console **
+** Welcome to mikutter console **
 Ctrl+C to exit.
 
 EOF
