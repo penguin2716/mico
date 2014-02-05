@@ -21,7 +21,8 @@ else
   FILE_INPUT_MODE = false
 end
 
-PORT = 23456
+# 巫女みくさん
+PORT = 35393
 LESS_LINE_THRESH = 18
 
 @locks = Queue.new

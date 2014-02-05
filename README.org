@@ -1,0 +1,47 @@
+* About mico (mikutter console)
+  *mico* はmikutterに接続して使うためのコンソールです．起動中のmikutterに接続してmikutterコマンドを叩いたりして楽しく遊ぶことができます．mikutterをCUIで操作したい場合やプラグインを書くときに役立つと思います．
+
+* How to use
+  現在の実装ではmikutterをEmacsから操作するための [[https://github.com/toshia/mikutter-mode][mikutter-mode]] に依存しているので，まずはそちらをインストールして下さい．インストール後， *mico* を起動するとmikutterに接続されます．その状態で何かコマンドを打ち込むとmikutter内で式が評価されて結果が出力されます．
+
+  : mikutter> Service
+  : => Service
+  : mikutter> Service.primary
+  : => #<Service penguin2716>
+  : mikutter> Service.primary.post :message => "みこみこみこ〜w"
+  : => #<Deferred:Deferred:0x007fa5aac6cee0...>
+  : => true
+
+  非同期のAPIを呼ぶとDeferredが返ってきますが，これについても次のように記述することでAPIの結果に対して処理を行うことができます．
+
+  : mikutter> Service.primary.twitter.followings
+  : => #<Deferred:0x007fa5a7a67eb8...>
+  : => true
+  : mikutter> $((Service.primary.twitter.followings)).class
+  : => Array
+  : mikutter> $((Service.primary.twitter.followings)).size
+  : => 1973
+
+  非同期APIの実行結果に関しては次のようにして変数に格納できます．APIの実行には回数制限があるので，実行結果に対して何らかの処理を行う場合は次のようにして変数に格納すると良いでしょう．また変数の先頭に@をつけてインスタンス変数にしないとあとで参照できなくなるので注意します．
+
+  : mikutter> Service.primary.twitter.followings.next{ |result| @result = result }
+  : => #<Deferred:0x007fa5a3b333f0...>
+  : => true
+  : mikutter> @result.size
+  : => 1973
+
+  先頭に.をつけると，シェルコマンドとして実行します．
+
+  : mikutter> .pwd
+  : /home/penguin
+  : mikutter> .uptime
+  :  18:33:28 up 14:40,  1 user,  load average: 0.09, 0.20, 0.25
+
+  また，ツイートする際はpostエイリアスコマンドが使えます．
+
+  : mikutter> post みこみこみこ〜w
+  : => #<Deferred:Deferred:0x007fa5aac6cee0...>
+  : => true
+
+* License
+  MITライセンスです．
