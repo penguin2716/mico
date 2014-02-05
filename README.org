@@ -43,5 +43,22 @@
   : => #<Deferred:Deferred:0x007fa5aac6cee0...>
   : => true
 
+  次のようなファイルを作れば，mikutter console scriptみたいな感じで書けます．
+
+  : #!/path/to/mico.rb
+  : 
+  : UserConfig[:mumble_basic_font]  = 'Sans 10'
+  : UserConfig[:mumble_basic_color] = [0, 0, 0]
+  : UserConfig[:mumble_reply_font]  = 'Sans 8'
+  : UserConfig[:mumble_reply_color] = [255*0x66, 255*0x66, 255*0x66]
+  : UserConfig[:mumble_basic_left_font]   = 'Sans 10'
+  : UserConfig[:mumble_basic_left_color]  = [0, 0, 0]
+  : UserConfig[:mumble_basic_right_font]  = 'Sans 10'
+  : UserConfig[:mumble_basic_right_color] = [255*0x99, 255*0x99, 255*0x99]
+  : UserConfig[:mumble_basic_bg]    = [65535, 65535, 65535]
+  : UserConfig[:mumble_reply_bg]    = [65535, 255*222, 255*222]
+  : UserConfig[:mumble_self_bg]     = [65535, 65535, 255*222]
+  : UserConfig[:mumble_selected_bg] = [255*222, 255*222, 65535]
+
 * License
   MITライセンスです．
